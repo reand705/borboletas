@@ -5,8 +5,8 @@ import matplotlib.animation as animation
 Nphi = 50 #numero de divisoes do intervalo [0,2pi)
 x = np.linspace(0, 2*np.pi, Nphi+1) #intervalo dos phis
 T = 2000 #Tempo de simulacao (Dias)
-N = 4000 #resoluçao
-data = np.load('solution.npy')
+N = 4000 #resolucao
+data = np.load('solution_rho=0.850.npy')
 phic = 100.
 duracao = 90.
 

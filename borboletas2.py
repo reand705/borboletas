@@ -53,7 +53,7 @@ u0 = 5
 
 u0m1 = 30 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
 u0m2 = 40
-u0b1 = 0 
+u0b1 = 0
 u0b2 = 0
 
 
@@ -133,16 +133,16 @@ def mediaphi(u):
     for i in range(len(x)):
         sum_of_sines += u[i]*np.sin(x[i])
         sum_of_cosines += u[i]*np.cos(x[i])
-    
+
     return np.arctan2(sum_of_sines,sum_of_cosines) + np.pi
-        
+
 
 # ----------------------------------------------------------------------------------------------------
 def ddt(y, t):
     '''
     Calcula du_M/dt, du_B/dt e dv_0/dt
     y contem as 4 populacoes de borboletas e a de predadores
-    
+
     Tambem atualiza as medias
     '''
     #Monte as populacoes
@@ -150,13 +150,13 @@ def ddt(y, t):
     u1b = y[Nphi+1:2*Nphi+2]
     u2m = y[2*Nphi+2:3*Nphi+3]
     u2b = y[3*Nphi+3:4*Nphi+4]
-    v0 = y[-1]    
+    v0 = y[-1]
 
     #Calcule as integrais
 
     int1m = scipy.integrate.trapz(u1m,x)
     int2m = scipy.integrate.trapz(u2m,x)
-   
+
     #calcule-as para todo phi
     du_1mdt = r(t,beta1) * u1m * (1 - int1m/K1) - rho*v0 * um_chapeu(u1m,int1m,int2m,u0) - m(t,phi)*u1m + m(t - 365/2.0,phi)*u1b
     du_1bdt = -mu1*u1b + m(t,phi)*u1m - m(t - 365/2.0,phi)*u1b
@@ -218,19 +218,19 @@ for i in range(0,lenT):
     mean_u1b[i] = np.mean(sol[i,Nphi+1:2*Nphi+2])
     mean_u2m[i] = np.mean(sol[i,2*Nphi+2:3*Nphi+3])
     mean_u2b[i] = np.mean(sol[i,3*Nphi+3:4*Nphi+4])
-    
+
     mean_of_phis_um10[i] = mediaphi(sol[i,0:(Nphi+1)])
     mean_of_phis_ub10[i] = mediaphi(sol[i,Nphi+1:2*Nphi+2])
     mean_of_phis_um20[i] = mediaphi(sol[i,2*Nphi+2:3*Nphi+3])
     mean_of_phis_ub20[i] = mediaphi(sol[i,3*Nphi+3:4*Nphi+4])
-   
+
 # medias simples
 media_phi_u1m = np.mean(mean_of_phis_um10[-5*365:])
 media_phi_u2m = np.mean(mean_of_phis_um20[-5*365:])
 
 # medias ponderadas por pop. total
 media_phi_avg_u1m = np.average(mean_of_phis_um10[-5*365:], weights=mean_u1m[-5*365:])
-media_phi_avg_u2m = np.average(mean_of_phis_um20[-5*365:], weights=mean_u1b[-5*365:])
+media_phi_avg_u2m = np.average(mean_of_phis_um20[-5*365:], weights=mean_u1b[-5*365:]) #2m, certo?
 
 # medidas de sincronia
 print('Diferença entre média simples de phi: %.1f' % ((media_phi_u2m - media_phi_u1m) / 2/ np.pi * 365))
@@ -273,4 +273,3 @@ plt.title("Media x Tempo")
 plt.xlabel("t")
 plt.ylabel(r"Media [0:2$\pi$]")
 plt.xticks(np.arange(0, T, 182.5), np.arange(0, T/365., 0.5))
-
