@@ -20,7 +20,7 @@ from matplotlib import rc ## desnecessário
 matplotlib.rcParams['text.usetex'] = True
 
 #Parametros
-M = 10
+M = 2
 rbar = 3 #taxa de crescimento
 alpha = 1 #? ## amplitude da oscilação da taxa de crescimento, alpha \in [0, 1]
 beta1 = 20 #fase da taxa de crescimento na mata (dias)
@@ -36,9 +36,9 @@ mu1 = 1/180.
 mu2 = 1/180.
 
 rho = 1 #taxa de predacao
-v = 10 #populacao fixa de predadores
+v = 5 #populacao fixa de predadores
 v00 = 5 #populacao inicial de predadores que NAO aprenderam
-c = 0.15 #taxa de aprendizagem
+c = 0.30 #taxa de aprendizagem
 C3 = 0.05 #taxa de DESaprendizagem
 phic = 240 #epoca do ano em que comecam a entrar novos predadores
 duracao = 150 #tamanho do intervado em que predadores entram
@@ -86,13 +86,20 @@ def u_inicial(x, u0, phibar, tipo):
         return u0/(2*np.pi)
 
     if tipo == 'wg':
-        # wrapped Gaussian
+        # wrapped Gaussian, sigma = 1?
         return u0 * max(norm.pdf(x,phibar), norm.pdf(x+2*np.pi,phibar), norm.pdf(x-2*np.pi,phibar))
 
 # ----------------------------------------------------------------------------------------------------
 def m(t,phi):
+    #RECEBE EM [0:2pi]
     #taxa de migracao de saida para o bolsao
-    return M*(1 + np.sin(2.0*np.pi*t/365 + phi))
+    #migracao senoidal 
+    #return M*(1 + np.sin(2.0*np.pi*t/365 + phi))
+    t = t%365
+    sigma = 10*2*np.pi/365 
+    return M * np.max(np.c_[norm.pdf(t-phi*(365/2*np.pi),0,sigma), 
+                   norm.pdf(t+365-phi*(365/2*np.pi),0,sigma), 
+                   norm.pdf(t-365-phi*(365/2*np.pi),0,sigma)], axis=1)
 # ----------------------------------------------------------------------------------------------------
 def c3(t,phic,duracao):
     #entrada de predadores
@@ -118,8 +125,7 @@ def r(t,beta):
     # Gaussiana:
     t = t%365
     sigma = 20
-    return np.sqrt(sigma) * 2 * np.pi * (rbar + alpha) * \
-            np.max(np.c_[norm.pdf(t-beta, 0, sigma),
+    return rbar * np.max(np.c_[norm.pdf(t-beta, 0, sigma),
                          norm.pdf(t-365-beta, 0, sigma),
                          norm.pdf(t+365-beta, 0,sigma)], axis=1)
 # ----------------------------------------------------------------------------------------------------
@@ -184,9 +190,13 @@ def ddt(y, t, rho):
 # <codecell>
 
 #Simule
-rhos = [0.05 + i*0.1 for i in range(0,12)]
+rhos = [0.0]
+aux = [0.05 + i*0.1 for i in range(0,4)]
+for elemento in aux: #preguiçoso
+    rhos.append(elemento)
 
 plt.interactive(True)
+print(rhos)
 t = np.linspace(0, T, N)
 lenT = len(t) ## = N+1 por construção?
 
@@ -213,7 +223,7 @@ for rho in rhos:
     
     sol = np.array(sol)
     
-    np.save('solution_rho=%.3f' %(rho), sol)
+    np.save('solution_rho(newM)=%.3f' %(rho), sol)
 
 # <codecell>
 
@@ -227,15 +237,21 @@ finals2m = []
 finals1b = []
 finals2b = []
 
+plt.interactive(True)
+rhos = [0.0]
+aux = [0.05 + i*0.1 for i in range(0,4)]
+for elemento in aux: #preguiçoso
+    rhos.append(elemento)
+
 for rho in rhos:
-    sol = np.load('solution_rho=%.3f.npy' %(rho))
+    sol = np.load('solution_rho(newM)=%.3f.npy' %(rho))
     
     #Monte as populacoes finais
-    u1m = sol[-1,0:Nphi+1]
-    u1b = sol[-1,Nphi+1:2*Nphi+2]
-    u2m = sol[-1,2*Nphi+2:3*Nphi+3]
-    u2b = sol[-1,3*Nphi+3:4*Nphi+4]
-    v0 = sol[-1,-1]    
+    u1m = sol[-1*365:,0:Nphi+1]
+    u1b = sol[-1*365:,Nphi+1:2*Nphi+2]
+    u2m = sol[-1*365:,2*Nphi+2:3*Nphi+3]
+    u2b = sol[-1*365:,3*Nphi+3:4*Nphi+4]
+    v0 = sol[-1*365:,-1]    
 
     #Calcule as integrais
     int1m = scipy.integrate.trapz(u1m,x)
@@ -243,10 +259,10 @@ for rho in rhos:
     int1b = scipy.integrate.trapz(u1b,x)
     int2b = scipy.integrate.trapz(u2b,x)
     
-    finals1m.append(int1m)
-    finals1b.append(int1b)
-    finals2m.append(int2m)
-    finals2b.append(int2b)
+    finals1m.append(np.mean(int1m))
+    finals1b.append(np.mean(int1b))
+    finals2m.append(np.mean(int2m))
+    finals2b.append(np.mean(int2b))
     
     #Calcule as medias
     mean_u1m = np.zeros(lenT)
@@ -296,12 +312,19 @@ for rho in rhos:
 
 # <codecell>
 
+np.shape(sol)
+
+# <codecell>
+
 #plote os phis medios
 plt.errorbar(rhos, means1, yerr = errorbars1, label = r"Esp. 1")
 plt.errorbar(rhos, means2, yerr = errorbars2, label = r"Esp. 2")
+print("Beta 1 = %d" %beta1)
+print("Beta 2 = %d" %beta2)
 plt.legend(loc = "best")
 plt.xlabel(r"$\rho$")
 plt.ylabel(r"$\phi$ medio (dia do ano)")
+plt.title(r"-$'s")
 plt.show()
 
 # <codecell>
@@ -312,10 +335,12 @@ plt.plot(rhos, finals1b, label = r"1b")
 plt.plot(rhos, finals2m, label = r"2m")
 plt.plot(rhos, finals2b, label = r"2b")
 plt.xlabel(r"$\rho$")
-plt.ylabel(r"Pop. finais (integrais)")
+plt.ylabel(r"Final pops. (avg. integral - last ano)")
+plt.title(r"-$'s")
 plt.legend(loc = "best")
 plt.show()
 
 # <codecell>
 
+means2
 
