@@ -20,13 +20,13 @@ from matplotlib import rc ## desnecessário
 matplotlib.rcParams['text.usetex'] = True
 
 #Parametros
-M = 2
-rbar = 3 #taxa de crescimento
+M = 10
+rbar = 10 #taxa de crescimento
 alpha = 1 #? ## amplitude da oscilação da taxa de crescimento, alpha \in [0, 1]
 beta1 = 20 #fase da taxa de crescimento na mata (dias)
 beta2 = 350 # parametro realista
-K1 = 50 #carrying capacities na mata
-K2 = 50 #carrying capacities na mata
+K1 = 30 #carrying capacities na mata
+K2 = 30 #carrying capacities na mata
 
 ## mortalidade no bolsao
 ## corresponde a 0.1 dia^-1, ou seja, o tempo de vida e ~10 dias so
@@ -38,8 +38,8 @@ mu2 = 1/180.
 rho = 1 #taxa de predacao
 v = 5 #populacao fixa de predadores
 v00 = 5 #populacao inicial de predadores que NAO aprenderam
-c = 0.30 #taxa de aprendizagem
-C3 = 0.05 #taxa de DESaprendizagem
+c = 0.5 #taxa de aprendizagem
+C3 = 0.1 #taxa de DESaprendizagem
 phic = 240 #epoca do ano em que comecam a entrar novos predadores
 duracao = 150 #tamanho do intervado em que predadores entram
 
@@ -53,8 +53,8 @@ phi = 2.0*np.pi* np.arange(0,Nphi+1)/Nphi
 ## descarta-lo, nao achei isso. De qualquer forma, deve dar um erro pequeno anyway
 u0 = 5
 
-u0m1 = 40 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
-u0m2 = 30
+u0m1 = 10 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
+u0m2 = 5
 u0b1 = 0 
 u0b2 = 0
 
@@ -96,7 +96,7 @@ def m(t,phi):
     #migracao senoidal 
     #return M*(1 + np.sin(2.0*np.pi*t/365 + phi))
     t = t%365
-    sigma = 10*2*np.pi/365 
+    sigma = 30
     return M * np.max(np.c_[norm.pdf(t-phi*(365/2*np.pi),0,sigma), 
                    norm.pdf(t+365-phi*(365/2*np.pi),0,sigma), 
                    norm.pdf(t-365-phi*(365/2*np.pi),0,sigma)], axis=1)
@@ -190,8 +190,9 @@ def ddt(y, t, rho):
 # <codecell>
 
 #Simule
-rhos = [0.0]
-aux = [0.05 + i*0.1 for i in range(0,4)]
+#rhos = [0.0]
+rhos = []
+aux = [0.05 + i*0.1 for i in range(2,4)]
 for elemento in aux: #preguiçoso
     rhos.append(elemento)
 
@@ -219,7 +220,7 @@ for rho in rhos:
     #plt.show()
     
     #Passe para o solver
-    sol = scipy.integrate.odeint(ddt,y0,t, (rho,))
+    sol = scipy.integrate.odeint(ddt,y0,t, (rho,), hmax=0.5)
     
     sol = np.array(sol)
     
@@ -237,9 +238,12 @@ finals2m = []
 finals1b = []
 finals2b = []
 
-plt.interactive(True)
-rhos = [0.0]
-aux = [0.05 + i*0.1 for i in range(0,4)]
+#plt.interactive(True)
+#rhos = [0.0]
+rhos = []
+t = np.linspace(0, T, N)
+lenT = len(t)
+aux = [0.05 + i*0.1 for i in range(2,4)]
 for elemento in aux: #preguiçoso
     rhos.append(elemento)
 
