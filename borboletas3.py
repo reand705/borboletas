@@ -4,8 +4,9 @@
 # <codecell>
 
 # coding: utf-8
-#Imprimir Rho - Borboletas
 %matplotlib inline
+#Imprimir Rho - Borboletas
+import matplotlib
 import scipy.integrate
 from scipy.stats import norm
 import numpy as np
@@ -15,7 +16,6 @@ import matplotlib.pyplot as plt
 #ax = fig.add_subplot(111, projection='3d')
 from scipy.stats import circmean
 from scipy.stats import circstd
-import matplotlib
 from matplotlib import rc ## desnecessário
 matplotlib.rcParams['text.usetex'] = True
 
@@ -23,8 +23,8 @@ matplotlib.rcParams['text.usetex'] = True
 M = 10
 rbar = 10 #taxa de crescimento
 alpha = 1 #? ## amplitude da oscilação da taxa de crescimento, alpha \in [0, 1]
-beta1 = 20 #fase da taxa de crescimento na mata (dias)
-beta2 = 350 # parametro realista
+beta1 = 120 #fase da taxa de crescimento na mata (dias)
+beta2 = 150 # parametro realista
 K1 = 50 #carrying capacities na mata
 K2 = 50 #carrying capacities na mata
 
@@ -38,14 +38,14 @@ mu2 = 1/180.
 rho = 1 #taxa de predacao
 v = 5 #populacao fixa de predadores
 v00 = 5 #populacao inicial de predadores que NAO aprenderam
-c = 0.5 #taxa de aprendizagem
+c = 0.7 #taxa de aprendizagem
 C3 = 0.1 #taxa de DESaprendizagem
 phic = 240 #epoca do ano em que comecam a entrar novos predadores
 duracao = 150 #tamanho do intervado em que predadores entram
 
 phibar1 = 1.5*np.pi #phi_barra
 phibar2 = np.pi
-Nphi = 50 #numero de divisoes do intervalo [0,2pi)
+Nphi = 100 #numero de divisoes do intervalo [0,2pi)
 x = np.linspace(0, 2*np.pi, Nphi+1) #intervalo dos phis
 phi = 2.0*np.pi* np.arange(0,Nphi+1)/Nphi
 
@@ -53,8 +53,8 @@ phi = 2.0*np.pi* np.arange(0,Nphi+1)/Nphi
 ## descarta-lo, nao achei isso. De qualquer forma, deve dar um erro pequeno anyway
 u0 = 5
 
-u0m1 = 40 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
-u0m2 = 30
+u0m1 = 0 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
+u0m2 = 50
 u0b1 = 0 
 u0b2 = 0
 
@@ -124,7 +124,7 @@ def r(t,beta):
     #return rbar*(1 + alpha*np.sin(2.0*np.pi*(t-beta)/365))
     # Gaussiana:
     t = t%365
-    sigma = 10
+    sigma = 30
     return rbar * np.max(np.c_[norm.pdf(t-beta, 0, sigma),
                          norm.pdf(t-365-beta, 0, sigma),
                          norm.pdf(t+365-beta, 0,sigma)], axis=1)
@@ -189,10 +189,10 @@ def ddt(y, t, rho):
 
 # <codecell>
 
-#Simule
+#Simule aqui
 rhos = [0.0]
 rhos = []
-aux = [0.05 + i*0.1 for i in range(0,12)]
+aux = [0.05 + i*0.1 for i in range(0,8)]
 for elemento in aux: #preguiçoso
     rhos.append(elemento)
 
@@ -224,7 +224,7 @@ for rho in rhos:
     
     sol = np.array(sol)
     
-    np.save('solution_rho(newM)=%.3f' %(rho), sol)
+    np.save('solution_rho(newsigma)pop2=%.3f' %(rho), sol)
 
 # <codecell>
 
@@ -238,17 +238,17 @@ finals2m = []
 finals1b = []
 finals2b = []
 
-#plt.interactive(True)
+plt.interactive(True)
 rhos = [0.0]
 rhos = []
 t = np.linspace(0, T, N)
 lenT = len(t)
-aux = [0.05 + i*0.1 for i in range(0,12)]
+aux = [0.05 + i*0.1 for i in range(0,8)]
 for elemento in aux: #preguiçoso
     rhos.append(elemento)
 
 for rho in rhos:
-    sol = np.load('solution_rho(newM)=%.3f.npy' %(rho))
+    sol = np.load('solution_rho(newsigma)=%.3f.npy' %(rho))
     
     #Monte as populacoes finais
     u1m = sol[-1*365:,0:Nphi+1]
@@ -304,10 +304,6 @@ for rho in rhos:
     media_phi_avg_u1m = circaverage(mean_of_phis_um10[-5*365:], mean_u1m[-5*365:])
     media_phi_avg_u2m = circaverage(mean_of_phis_um20[-5*365:], mean_u2m[-5*365:])
     
-    # medidas de sincronia
-    print('Diferença entre média simples de phi: %.5f' % ((media_phi_u2m - media_phi_u1m) / 2/ np.pi * 365))
-    print('Diferença entre média ponderada de phi: %.5f' % ((media_phi_avg_u2m - media_phi_avg_u1m) / 2/ np.pi * 365))
-    
     #adicione às listas
     means1.append(media_phi_avg_u1m/ 2/ np.pi * 365)
     errorbars1.append(stdev_phi_u1m/ 2/ np.pi * 365)
@@ -316,20 +312,190 @@ for rho in rhos:
 
 # <codecell>
 
-np.shape(sol)
+#Calcule as medias e as populações finais para todos os rhos - APENAS 2
+means1_apenas2 = []
+errorbars1_apenas2 = []
+means2_apenas2 = []
+errorbars2_apenas2 = []
+finals1m_apenas2 = []
+finals2m_apenas2 = []
+finals1b_apenas2 = []
+finals2b_apenas2 = []
+
+plt.interactive(True)
+rhos = [0.0]
+rhos = []
+t = np.linspace(0, T, N)
+lenT = len(t)
+aux = [0.05 + i*0.1 for i in range(0,8)]
+for elemento in aux: #preguiçoso
+    rhos.append(elemento)
+
+for rho in rhos:
+    sol = np.load('solution_rho(newsigma)pop2=%.3f.npy' %(rho))
+    
+    #Monte as populacoes finais
+    u1m = sol[-1*365:,0:Nphi+1]
+    u1b = sol[-1*365:,Nphi+1:2*Nphi+2]
+    u2m = sol[-1*365:,2*Nphi+2:3*Nphi+3]
+    u2b = sol[-1*365:,3*Nphi+3:4*Nphi+4]
+    v0 = sol[-1*365:,-1]    
+
+    #Calcule as integrais
+    int1m = scipy.integrate.trapz(u1m,x)
+    int2m = scipy.integrate.trapz(u2m,x)
+    int1b = scipy.integrate.trapz(u1b,x)
+    int2b = scipy.integrate.trapz(u2b,x)
+    
+    finals1m_apenas2.append(np.mean(int1m))
+    finals1b_apenas2.append(np.mean(int1b))
+    finals2m_apenas2.append(np.mean(int2m))
+    finals2b_apenas2.append(np.mean(int2b))
+    
+    #Calcule as medias
+    mean_u1m = np.zeros(lenT)
+    mean_u1b = np.zeros(lenT)
+    mean_u2m = np.zeros(lenT)
+    mean_u2b = np.zeros(lenT)
+    
+    mean_of_phis_um10 = np.zeros(lenT)
+    mean_of_phis_ub10 = np.zeros(lenT)
+    mean_of_phis_um20 = np.zeros(lenT)
+    mean_of_phis_ub20 = np.zeros(lenT)
+    
+    for i in range(0,lenT):
+        #populacao media
+        mean_u1m[i] = np.mean(sol[i,0:(Nphi+1)])
+        mean_u1b[i] = np.mean(sol[i,Nphi+1:2*Nphi+2])
+        mean_u2m[i] = np.mean(sol[i,2*Nphi+2:3*Nphi+3])
+        mean_u2b[i] = np.mean(sol[i,3*Nphi+3:4*Nphi+4])
+        
+        #média dos phis
+        mean_of_phis_um10[i] = mediaphi(sol[i,0:(Nphi+1)])
+        mean_of_phis_ub10[i] = mediaphi(sol[i,Nphi+1:2*Nphi+2])
+        mean_of_phis_um20[i] = mediaphi(sol[i,2*Nphi+2:3*Nphi+3])
+        mean_of_phis_ub20[i] = mediaphi(sol[i,3*Nphi+3:4*Nphi+4])
+        
+    # medias simples
+    media_phi_u1m = circmean(mean_of_phis_um10[-5*365:])
+    media_phi_u2m = circmean(mean_of_phis_um20[-5*365:])
+    
+    #desvio padrão
+    stdev_phi_u1m = circstd(mean_of_phis_um10[-5*365:])
+    stdev_phi_u2m = circstd(mean_of_phis_um20[-5*365:])
+    
+    # medias ponderadas por pop. total
+    media_phi_avg_u1m = circaverage(mean_of_phis_um10[-5*365:], mean_u1m[-5*365:])
+    media_phi_avg_u2m = circaverage(mean_of_phis_um20[-5*365:], mean_u2m[-5*365:])
+    
+    #adicione às listas
+    means1_apenas2.append(media_phi_avg_u1m/ 2/ np.pi * 365)
+    errorbars1_apenas2.append(stdev_phi_u1m/ 2/ np.pi * 365)
+    means2_apenas2.append(media_phi_avg_u2m/ 2/ np.pi * 365)
+    errorbars2_apenas2.append(stdev_phi_u2m/ 2/ np.pi * 365)
+
+# <codecell>
+
+#Calcule as medias e as populações finais para todos os rhos - APENAS 1
+means1_apenas1 = []
+errorbars1_apenas1 = []
+means2_apenas1 = []
+errorbars2_apenas1 = []
+finals1m_apenas1 = []
+finals2m_apenas1 = []
+finals1b_apenas1 = []
+finals2b_apenas1 = []
+
+plt.interactive(True)
+rhos = [0.0]
+rhos = []
+t = np.linspace(0, T, N)
+lenT = len(t)
+aux = [0.05 + i*0.1 for i in range(0,8)]
+for elemento in aux: #preguiçoso
+    rhos.append(elemento)
+
+for rho in rhos:
+    sol = np.load('solution_rho(newsigma)pop1=%.3f.npy' %(rho))
+    
+    #Monte as populacoes finais
+    u1m = sol[-1*365:,0:Nphi+1]
+    u1b = sol[-1*365:,Nphi+1:2*Nphi+2]
+    u2m = sol[-1*365:,2*Nphi+2:3*Nphi+3]
+    u2b = sol[-1*365:,3*Nphi+3:4*Nphi+4]
+    v0 = sol[-1*365:,-1]    
+
+    #Calcule as integrais
+    int1m = scipy.integrate.trapz(u1m,x)
+    int2m = scipy.integrate.trapz(u2m,x)
+    int1b = scipy.integrate.trapz(u1b,x)
+    int2b = scipy.integrate.trapz(u2b,x)
+    
+    finals1m_apenas1.append(np.mean(int1m))
+    finals1b_apenas1.append(np.mean(int1b))
+    finals2m_apenas1.append(np.mean(int2m))
+    finals2b_apenas1.append(np.mean(int2b))
+    
+    #Calcule as medias
+    mean_u1m = np.zeros(lenT)
+    mean_u1b = np.zeros(lenT)
+    mean_u2m = np.zeros(lenT)
+    mean_u2b = np.zeros(lenT)
+    
+    mean_of_phis_um10 = np.zeros(lenT)
+    mean_of_phis_ub10 = np.zeros(lenT)
+    mean_of_phis_um20 = np.zeros(lenT)
+    mean_of_phis_ub20 = np.zeros(lenT)
+    
+    for i in range(0,lenT):
+        #populacao media
+        mean_u1m[i] = np.mean(sol[i,0:(Nphi+1)])
+        mean_u1b[i] = np.mean(sol[i,Nphi+1:2*Nphi+2])
+        mean_u2m[i] = np.mean(sol[i,2*Nphi+2:3*Nphi+3])
+        mean_u2b[i] = np.mean(sol[i,3*Nphi+3:4*Nphi+4])
+        
+        #média dos phis
+        mean_of_phis_um10[i] = mediaphi(sol[i,0:(Nphi+1)])
+        mean_of_phis_ub10[i] = mediaphi(sol[i,Nphi+1:2*Nphi+2])
+        mean_of_phis_um20[i] = mediaphi(sol[i,2*Nphi+2:3*Nphi+3])
+        mean_of_phis_ub20[i] = mediaphi(sol[i,3*Nphi+3:4*Nphi+4])
+        
+    # medias simples
+    media_phi_u1m = circmean(mean_of_phis_um10[-5*365:])
+    media_phi_u2m = circmean(mean_of_phis_um20[-5*365:])
+    
+    #desvio padrão
+    stdev_phi_u1m = circstd(mean_of_phis_um10[-5*365:])
+    stdev_phi_u2m = circstd(mean_of_phis_um20[-5*365:])
+    
+    # medias ponderadas por pop. total
+    media_phi_avg_u1m = circaverage(mean_of_phis_um10[-5*365:], mean_u1m[-5*365:])
+    media_phi_avg_u2m = circaverage(mean_of_phis_um20[-5*365:], mean_u2m[-5*365:])
+    
+    #adicione às listas
+    means1_apenas1.append(media_phi_avg_u1m/ 2/ np.pi * 365)
+    errorbars1_apenas1.append(stdev_phi_u1m/ 2/ np.pi * 365)
+    means2_apenas1.append(media_phi_avg_u2m/ 2/ np.pi * 365)
+    errorbars2_apenas1.append(stdev_phi_u2m/ 2/ np.pi * 365)
 
 # <codecell>
 
 #plote os phis medios
-plt.errorbar(rhos, means1, yerr = errorbars1, label = r"Esp. 1")
-plt.errorbar(rhos, means2, yerr = errorbars2, label = r"Esp. 2")
+plt.errorbar(rhos, means1, yerr = errorbars1, label = 'Esp.1')
+plt.errorbar(rhos, means2, yerr = errorbars2, label = 'Esp.2')
 print("Beta 1 = %d" %beta1)
 print("Beta 2 = %d" %beta2)
+
+#plote os phis medios - apenas 1
+plt.errorbar(rhos, means1_apenas1, yerr = errorbars1, label = 'Esp.1 (Apenas 1)')
+
+#plote os phis medios - apenas 2
+plt.errorbar(rhos, means2_apenas2, yerr = errorbars2, label = 'Esp.2 (Apenas 2)')
+
 plt.legend(loc = "best")
 plt.xlabel(r"$\rho$")
 plt.ylabel(r"$\phi$ medio (dia do ano)")
-plt.title(r"-")
-plt.show()
+plt.title(r"Sincroniz. $\beta_1 = 120$, $\beta_2 = 150$")
 
 # <codecell>
 
@@ -338,11 +504,19 @@ plt.plot(rhos, finals1m, label = r"1m")
 plt.plot(rhos, finals1b, label = r"1b")
 plt.plot(rhos, finals2m, label = r"2m")
 plt.plot(rhos, finals2b, label = r"2b")
+
+#Apenas 1
+plt.plot(rhos, finals1m_apenas1, label = "1m-Apenas1")
+plt.plot(rhos, finals1b_apenas1, label = "1b-Apenas1")
+
+#Apenas 2
+plt.plot(rhos, finals2m_apenas2, label = "2m-Apenas2")
+plt.plot(rhos, finals2b_apenas2, label = "2b-Apenas2")
+
 plt.xlabel(r"$\rho$")
 plt.ylabel(r"Final pops. (avg. integral - last ano)")
-plt.title(r"-")
-plt.legend(loc = "best")
-plt.show()
+plt.title(r"Pop. Finais $\beta_1 = 120$, $\beta_2 = 150$")
+plt.legend(loc = "lower left")
 
 # <codecell>
 
