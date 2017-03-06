@@ -18,13 +18,14 @@ from scipy.stats import circmean
 from scipy.stats import circstd
 from matplotlib import rc ## desnecessário
 matplotlib.rcParams['text.usetex'] = True
+matplotlib.rcParams.update({'font.size': 18})
 
 #Parametros
-M = 10
-rbar = 10 #taxa de crescimento
+M = 20
+rbar = 2*np.log(60/2.0) #taxa de crescimento (r = G*log(60/2))
 alpha = 1 #? ## amplitude da oscilação da taxa de crescimento, alpha \in [0, 1]
-beta1 = 120 #fase da taxa de crescimento na mata (dias)
-beta2 = 150 # parametro realista
+beta1 = 20 #fase da taxa de crescimento na mata (dias)
+beta2 = 350 # parametro realista
 K1 = 50 #carrying capacities na mata
 K2 = 50 #carrying capacities na mata
 
@@ -36,10 +37,10 @@ mu1 = 1/180.
 mu2 = 1/180.
 
 rho = 1 #taxa de predacao
-v = 5 #populacao fixa de predadores
+v = 7 #populacao fixa de predadores
 v00 = 5 #populacao inicial de predadores que NAO aprenderam
-c = 0.7 #taxa de aprendizagem
-C3 = 0.1 #taxa de DESaprendizagem
+c = 0.5 #taxa de aprendizagem
+C3 = 0.3 #taxa de DESaprendizagem
 phic = 240 #epoca do ano em que comecam a entrar novos predadores
 duracao = 150 #tamanho do intervado em que predadores entram
 
@@ -53,8 +54,8 @@ phi = 2.0*np.pi* np.arange(0,Nphi+1)/Nphi
 ## descarta-lo, nao achei isso. De qualquer forma, deve dar um erro pequeno anyway
 u0 = 5
 
-u0m1 = 0 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
-u0m2 = 50
+u0m1 = 40 #Populacoes Iniciais - Pico da triangular - (QUASE A) integral da populacao na distribuicao inicial
+u0m2 = 0
 u0b1 = 0 
 u0b2 = 0
 
@@ -96,10 +97,10 @@ def m(t,phi):
     #migracao senoidal 
     #return M*(1 + np.sin(2.0*np.pi*t/365 + phi))
     t = t%365
-    sigma = 30
-    return M * np.max(np.c_[norm.pdf(t-phi*(365/2/np.pi),0,sigma), 
-                   norm.pdf(t+365-phi*(365/2/np.pi),0,sigma), 
-                   norm.pdf(t-365-phi*(365/2/np.pi),0,sigma)], axis=1)
+    sigma_m = 10
+    return M * np.max(np.c_[norm.pdf(t-phi*(365/2/np.pi),0,sigma_m), 
+                   norm.pdf(t+365-phi*(365/2/np.pi),0,sigma_m), 
+                   norm.pdf(t-365-phi*(365/2/np.pi),0,sigma_m)], axis=1)
 # ----------------------------------------------------------------------------------------------------
 def c3(t,phic,duracao):
     #entrada de predadores
@@ -124,10 +125,10 @@ def r(t,beta):
     #return rbar*(1 + alpha*np.sin(2.0*np.pi*(t-beta)/365))
     # Gaussiana:
     t = t%365
-    sigma = 30
-    return rbar * np.max(np.c_[norm.pdf(t-beta, 0, sigma),
-                         norm.pdf(t-365-beta, 0, sigma),
-                         norm.pdf(t+365-beta, 0,sigma)], axis=1)
+    sigma_r = 90
+    return rbar * np.max(np.c_[norm.pdf(t-beta, 0, sigma_r),
+                         norm.pdf(t-365-beta, 0, sigma_r),
+                         norm.pdf(t+365-beta, 0,sigma_r)], axis=1)
 # ----------------------------------------------------------------------------------------------------
 def um_chapeu(um,int1m,int2m,u0):
     #Calcula a densidade da mata
@@ -190,12 +191,7 @@ def ddt(y, t, rho):
 # <codecell>
 
 #Simule aqui
-rhos = [0.0]
-rhos = []
-aux = [0.05 + i*0.1 for i in range(0,8)]
-for elemento in aux: #preguiçoso
-    rhos.append(elemento)
-
+rhos = [0.0 + i*0.04 for i in range(0,10)]
 plt.interactive(True)
 print(rhos)
 t = np.linspace(0, T, N)
@@ -224,7 +220,42 @@ for rho in rhos:
     
     sol = np.array(sol)
     
-    np.save('solution_rho(newsigma)pop2=%.3f' %(rho), sol)
+    np.save('solution_rho=%.3f_pop1' %(rho), sol)
+
+# <codecell>
+
+#evolução temporal de uma solução
+rho = 0.16
+sol = np.load('solution_rho=%.3f.npy' %(rho))
+#Monte as populacoes finais
+u1m = sol[:,0:Nphi+1]
+u1b = sol[:,Nphi+1:2*Nphi+2]
+u2m = sol[:,2*Nphi+2:3*Nphi+3]
+u2b = sol[:,3*Nphi+3:4*Nphi+4]
+v0 = sol[:,-1]
+
+#Calcule as medias
+mean_u1m = np.zeros(lenT)
+mean_u1b = np.zeros(lenT)
+mean_u2m = np.zeros(lenT)
+mean_u2b = np.zeros(lenT)
+for i in range(0,lenT):
+    #populacao media
+    mean_u1m[i] = np.mean(sol[i,0:(Nphi+1)])
+    mean_u1b[i] = np.mean(sol[i,Nphi+1:2*Nphi+2])
+    mean_u2m[i] = np.mean(sol[i,2*Nphi+2:3*Nphi+3])
+    mean_u2b[i] = np.mean(sol[i,3*Nphi+3:4*Nphi+4])
+
+plt.plot(mean_u1m,label = "1m")
+plt.plot(mean_u1b, label = "1b")
+plt.plot(mean_u2m, label = "2m")
+plt.plot(mean_u2b, label = "2b")
+plt.plot(v0, label = "v0")
+plt.legend(loc = 'best', prop={'size':15})
+plt.axis([3500,4400,0,20])
+plt.xlabel("Tempo (dias)")
+plt.ylabel("Pop.")
+plt.title(r"Evolu\c{c}\~ao temporal - $\rho = 0.16$")
 
 # <codecell>
 
@@ -239,16 +270,12 @@ finals1b = []
 finals2b = []
 
 plt.interactive(True)
-rhos = [0.0]
-rhos = []
 t = np.linspace(0, T, N)
 lenT = len(t)
-aux = [0.05 + i*0.1 for i in range(0,8)]
-for elemento in aux: #preguiçoso
-    rhos.append(elemento)
+rhos = [0.0 + i*0.04 for i in range(0,10)]
 
 for rho in rhos:
-    sol = np.load('solution_rho(newsigma)=%.3f.npy' %(rho))
+    sol = np.load('solution_rho=%.3f.npy' %(rho))
     
     #Monte as populacoes finais
     u1m = sol[-1*365:,0:Nphi+1]
@@ -323,16 +350,12 @@ finals1b_apenas2 = []
 finals2b_apenas2 = []
 
 plt.interactive(True)
-rhos = [0.0]
-rhos = []
 t = np.linspace(0, T, N)
 lenT = len(t)
-aux = [0.05 + i*0.1 for i in range(0,8)]
-for elemento in aux: #preguiçoso
-    rhos.append(elemento)
+rhos = [0.0 + i*0.04 for i in range(0,10)]
 
 for rho in rhos:
-    sol = np.load('solution_rho(newsigma)pop2=%.3f.npy' %(rho))
+    sol = np.load('solution_rho=%.3f_pop2.npy' %(rho))
     
     #Monte as populacoes finais
     u1m = sol[-1*365:,0:Nphi+1]
@@ -411,12 +434,10 @@ rhos = [0.0]
 rhos = []
 t = np.linspace(0, T, N)
 lenT = len(t)
-aux = [0.05 + i*0.1 for i in range(0,8)]
-for elemento in aux: #preguiçoso
-    rhos.append(elemento)
+rhos = [0.0 + i*0.04 for i in range(0,10)]
 
 for rho in rhos:
-    sol = np.load('solution_rho(newsigma)pop1=%.3f.npy' %(rho))
+    sol = np.load('solution_rho=%.3f_pop1.npy' %(rho))
     
     #Monte as populacoes finais
     u1m = sol[-1*365:,0:Nphi+1]
@@ -481,44 +502,42 @@ for rho in rhos:
 # <codecell>
 
 #plote os phis medios
-plt.errorbar(rhos, means1, yerr = errorbars1, label = 'Esp.1')
-plt.errorbar(rhos, means2, yerr = errorbars2, label = 'Esp.2')
+plt.errorbar(rhos, means1, yerr = errorbars1, label = 'sp1')
+plt.errorbar(rhos, means2, yerr = errorbars2, label = 'sp2')
 print("Beta 1 = %d" %beta1)
 print("Beta 2 = %d" %beta2)
 
 #plote os phis medios - apenas 1
-plt.errorbar(rhos, means1_apenas1, yerr = errorbars1, label = 'Esp.1 (Apenas 1)')
+plt.errorbar(rhos[0:6], means1_apenas1[0:6], yerr = errorbars1[0:6], label = 'sp1 (Apenas 1)')
 
 #plote os phis medios - apenas 2
-plt.errorbar(rhos, means2_apenas2, yerr = errorbars2, label = 'Esp.2 (Apenas 2)')
+plt.errorbar(rhos[0:5], means2_apenas2[0:5], yerr = errorbars2[0:5], label = 'sp2 (Apenas 2)')
 
-plt.legend(loc = "best")
+plt.legend(loc = "best", prop={'size':15})
 plt.xlabel(r"$\rho$")
 plt.ylabel(r"$\phi$ medio (dia do ano)")
-plt.title(r"Sincroniz. $\beta_1 = 120$, $\beta_2 = 150$")
+plt.axis([0,0.37,0,350])
+plt.title(r"Sincroniz. $\beta_1 = 20$, $\beta_2 = 350$")
 
 # <codecell>
 
 #Plote as populações finais
-plt.plot(rhos, finals1m, label = r"1m")
-plt.plot(rhos, finals1b, label = r"1b")
-plt.plot(rhos, finals2m, label = r"2m")
-plt.plot(rhos, finals2b, label = r"2b")
+plt.plot(rhos, np.array(finals1m)+np.array(finals1b), label = r"sp1")
+plt.plot(rhos, np.array(finals2m)+np.array(finals2b), label = r"sp2")
 
 #Apenas 1
-plt.plot(rhos, finals1m_apenas1, label = "1m-Apenas1")
-plt.plot(rhos, finals1b_apenas1, label = "1b-Apenas1")
+plt.plot(rhos, np.array(finals1m_apenas1)+np.array(finals1b_apenas1), label = "sp1 (Apenas 1)")
 
 #Apenas 2
-plt.plot(rhos, finals2m_apenas2, label = "2m-Apenas2")
-plt.plot(rhos, finals2b_apenas2, label = "2b-Apenas2")
+plt.plot(rhos, np.array(finals2m_apenas2)+np.array(finals2b_apenas2), label = "sp2 (Apenas 2)")
 
 plt.xlabel(r"$\rho$")
-plt.ylabel(r"Final pops. (avg. integral - last ano)")
-plt.title(r"Pop. Finais $\beta_1 = 120$, $\beta_2 = 150$")
-plt.legend(loc = "lower left")
+plt.ylabel(r"Final pops. (avg. integral - last year)")
+plt.axis([0,0.36,0,60])
+plt.title(r"Pop. Finais - Bols. + Mata")
+plt.legend(loc = "upper right", prop={'size':15})
 
 # <codecell>
 
-means2
+np.mean(sol[:,3*Nphi+3:4*Nphi+4])
 
